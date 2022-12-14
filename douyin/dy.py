@@ -21,6 +21,7 @@ from .dy_pb2 import MemberMessage
 from .dy_pb2 import GiftMessage
 from .dy_pb2 import ChatMessage
 from .dy_pb2 import SocialMessage
+from .dy_pb2 import RoomUserSeqMessage
 
 liveRoomId = None
 ttwid = None
@@ -29,6 +30,7 @@ liveRoomTitle = None
 q = None
 ws = None
 isCloseWss = True
+
 
 def onMessage(ws: websocket.WebSocketApp, message: bytes):
     wssPackage = PushFrame()
@@ -64,7 +66,22 @@ def onMessage(ws: websocket.WebSocketApp, message: bytes):
             unPackWebcastSocialMessage(msg.payload)
             continue
 
+        if msg.method == 'WebcastRoomUserSeqMessage':
+            unPackWebcastRoomUserSeqMessage(msg.payload)
+            continue
+
         logging.info('[onMessage] [⌛️方法' + msg.method + '等待解析～] [房间Id：' + liveRoomId + ']')
+
+
+# 直播间人数消息
+def unPackWebcastRoomUserSeqMessage(data):
+    roomUserSeqMessage = RoomUserSeqMessage()
+    roomUserSeqMessage.ParseFromString(data)
+    data = json_format.MessageToDict(roomUserSeqMessage, preserving_proto_field_name=True)
+    log = json.dumps(data, ensure_ascii=False)
+    logging.info('[WebcastRoomUserSeqMessage] [直播间人数信息] [房间Id：' + liveRoomId + '] ｜ ' + log)
+    q.put(json.dumps(data))
+    return data
 
 
 # 关注消息

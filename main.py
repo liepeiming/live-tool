@@ -40,7 +40,7 @@ class BarrageHelper(QWidget):
         self.noticeLabel = QLabel('🌈🌈🌈 WYI直播监控', self)
         self.noticeLabel.move(160, 10)
         self.noticeLabel.resize(300, 30)
-        self.liveAddrEdit = QLineEdit('https://live.douyin.com/76663111946', self)
+        self.liveAddrEdit = QLineEdit('https://live.douyin.com/56689690388', self)
         self.protcolLabel = QLabel('弹幕类型：', self)
         self.protcoComboBox = QComboBox(self)
         self.connectButton = QPushButton('进入房间', self)
@@ -70,7 +70,7 @@ class BarrageHelper(QWidget):
         winT = self.protcoComboBox.currentText()
         global winTitle
         winTitle = winT
-        self.win = BarrageWin(winTitle=winT)
+        self.win = BarrageWin(winTitle=winT, protoType=winT)
         if self.topWinCheckBox.isChecked():
             self.win.setWindowFlags(
                 QtCore.Qt.WindowType.WindowStaysOnTopHint | QtCore.Qt.WindowType.FramelessWindowHint)
@@ -98,11 +98,13 @@ class BarrageHelper(QWidget):
 
 class BarrageWin(QMainWindow):
 
-    def __init__(self, winTitle):
+    def __init__(self, winTitle, protoType):
         super().__init__()
+        self.liveLabel = None
         self.mflag = None
         self.textBrowser = None
         self.winTitle = winTitle
+        self.protoType = protoType
         self.initUI()
 
     def initUI(self):
@@ -112,12 +114,18 @@ class BarrageWin(QMainWindow):
         self.resize(300, 600)
         self.textBrowser = QTextBrowser(self)
         self.textBrowser.resize(100, 100)
-        self.textBrowser.move(0, 50)
+        self.textBrowser.move(0, 35)
         self.outputWritten('Notice ==> 正在建立直播通道请稍等～～～')
+        self.liveLabel = QLabel(self.winTitle, self)
+        self.liveLabel.resize(300, 30)
+        self.liveLabel.setStyleSheet('color:red')
+        self.liveLabel.setStyleSheet('font:20pt')
+        self.liveLabel.setStyleSheet('background-color: #3B2667')
 
     def outputWritten(self, text):
-        if winTitle is not None:
-            self.setWindowTitle(str(winTitle))
+        if self.protoType is not None and self.liveLabel is not None:
+            self.liveLabel.setText(self.protoType+" | "+winTitle)
+
         self.textBrowser.append('\n')
         self.textBrowser.insertHtml(text)
         self.textBrowser.append('\n')
@@ -167,10 +175,10 @@ class printThread(QThread):
             self.printF(data)
 
     def printF(self, data):
+        global winTitle
         data = json.loads(data)
         if 'roomInfo' in data.keys():
             roomTitle = data['roomInfo']['room']['title']
-            global winTitle
             winTitle = winTitle + ' | ' + roomTitle
             return
 
@@ -195,6 +203,13 @@ class printThread(QThread):
         if data['common']['method'] == 'WebcastChatMessage':
             nickname = data['user']['nickName']
             self.textWritten.emit('💬 <font color="pink">' + nickname + '</font>: ' + data['content'])
+            return
+
+        if data['common']['method'] == 'WebcastRoomUserSeqMessage':
+            total = data['total']
+            totalStr = data['totalStr']
+            text = "👀当前观看人数："+str(total)+" ("+totalStr+")"
+            winTitle = text
             return
 
 
